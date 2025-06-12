@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <body>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
+
+      body{
+        font-family: "Montserrat", Arial, sans-serif;
+        padding: 1rem;
+      }
+
+      header{
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .none {
+        display: none !important;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: .75fr 1fr 1fr;
+        padding-bottom: 1rem;
+      }
+
+      .available-spaces-container {
+        height: 400px;
+        overflow: scroll;
+      }
+
+      .available-spaces-container ul{
+        padding: 16px;
+      }
+
+      .available-spaces-container ul li {
+        position: relative;
+        padding: 8px 10px;
+        list-style-type: none;
+        margin-bottom: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .badge {
+        font-size: 0.75rem; /* Small size for the badge */
+        font-weight: bold;
+        text-transform: uppercase; /* Small caps */
+        padding: 2px 6px;
+        border-radius: 12px; /* Rounded edges */
+        display: inline-block;
+      }
+
+      .badge-available {
+        background-color: #d4f5e1; /* Light green */
+        color: #2b8a5e; /* Darker green for contrast */
+      }
+
+      .badge-occupied {
+        background-color: #fbd6d6; /* Light red */
+        color: #a83232; /* Darker red for contrast */
+      }
+
+      .column {
+        
+        display: flex;
+        flex-direction: column;
+        padding-right: 3rem;
+        
+      }
+
+      .column.container {
+        
+      }
+
+      .column::-webkit-scrollbar { 
+        display: none;
+      }
+
+        #my-input {
+          box-sizing: border-box;
+          font-size: 16px;
+          padding:14px 30px;
+          border: none;
+          border-bottom: 1px solid #ddd;
+          position: sticky;
+          width: 100%;
+          min-width: 263px;
+          
+        }
+        
+        #my-input:focus {
+          outline: 3px solid #ddd;
+          }
+
+        #discount-input-block {
+          margin: 1rem 0;
+        }
+        
+        #space-type{
+          
+        }
+        /* The container <div> - needed to position the dropdown content */
+        .dropdown {
+          position: relative;
+          display: inline-block;
+          
+        }
+
+        /* Dropdown Content (Hidden by Default) */
+        .dropdown-content {
+          display: none;
+          margin-top: 1rem;
+          position: absolute;
+          background-color: #f6f6f6;
+          min-width: 230px;
+          border: 1px solid #ddd;
+          z-index: 1;
+        }
+
+        /* Links inside the dropdown */
+        .dropdown-content li {
+          color: black;
+          padding: 12px 16px;
+          text-decoration: none;
+          display: block;
+        }
+
+        /* Change color of dropdown links on hover */
+        .dropdown-content li:hover {background-color: #f1f1f1}
+
+        /* Show the dropdown menu (use JS to add this class to the .dropdown-content container when the user clicks on the dropdown button) */
+
+        .error-message {
+              border-left: 7px #fb9c9c solid;
+              padding: 8px;
+              border-radius: 4px;
+              width: 50%;
+              margin: 5px;
+              box-shadow: 2px 2px #f1f3f4;      
+              transition: 0.3s;        
+        }
+
+        #end-date-input, #credit-duration-input {
+          display: none;
+          flex-direction: column;
+          margin: 1rem;
+        }
+        
+        .error-message:hover {
+          background-color: #ffd4d4;
+        }
+
+        .error-message:active {
+          background-color: #ff7f7f;
+        }
+
+        .input-div {
+          margin: 1rem 0
+        }
+
+        .input-field {
+          border: none;
+          border-bottom: 1px solid #000;
+          width: 100%
+        }
+
+        .input-field::placeholder {
+          color: red;
+          opacity: 1;
+        }
+
+        .input-row {
+          
+        }
+
+        .input-field:focus-visible {
+          outline: none;
+          border: none;
+          border-bottom: 1px solid #FF8100;
+          transition: 0.2s;
+        }
+
+        .radio-block{
+          padding: 0 0 0 1rem;
+        }
+
+        .show {display:block;}  
+
+        .selected-space {
+          list-style: none;
+          padding: 0.5rem 3rem 0.5rem 1rem;
+          margin: .5rem;
+          border: 1px solid #FF8100;
+          border-radius: 25px;
+          min-width: 216px;
+        }
+
+        .selected-space:hover, .selected-space:focus {
+          background-color: #ED2939;
+          color: #FFF
+          border: none;
+          transition: 0.3s;
+        }
+
+        .standard-btn{
+          border: none;
+          width: 200px;
+          height: 50px;
+          border-radius: 5px;
+          background-color: #FF8100;
+          color: #FAFAfA;
+          font-family: "Montserrat", Arial, sans-serif;
+          font-weight: 900;
+          font-size: 20px;
+          transition: all 0.3s;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        /* #dropdown-btn{
+          border: none;
+          width: 200px;
+          height: 50px;
+          border-radius: 5px;
+          background-color: #FF8100;
+          color: #FAFAfA;
+          font-family: "Montserrat", Arial, sans-serif;
+          font-weight: 900;
+          font-size: 20px;
+          transition: all 0.3s;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        #submit-btn {
+          border: none;
+          width: 150px;
+          height: 50px;
+          border-radius: 5px;
+          background-color: #FF8100;
+          color: #FAFAfA;
+          font-family: "Montserrat", Arial, sans-serif;
+          font-weight: 900;
+          font-size: 20px;
+          transition: all 0.3s;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        } */
+        .enterprise-btn {
+          border: none;
+          width: 150px;
+          height: 50px;
+          border-radius: 5px;
+          background-color: #278090;
+          color: #FAFAfA;
+          font-family: "Montserrat", Arial, sans-serif;
+          font-weight: 900;
+          font-size: 20px;
+          transition: all 0.3s;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        #submit-btn:hover, #dropdown-btn:hover{
+          background-color: #FFB061;
+        }
+
+        #submit-btn:active, #dropdown-btn:active {
+          background-color: #C76300;
+        }
+
+        #submit-btn p {
+          margin: 0;
+          padding: 0;
+        }
+
+        #submit-btn .loading * {
+          display: none;
+        }
+        
+        #submit-btn .loading {
+          width: 25px;
+          height: 25px;
+          border-radius: 50%;
+          box-sizing: border-box;
+          border: 5px solid rgba(0, 0, 0, 0.2);
+          border-right-color: #FAFAfA;
+          animation: spin-pulse 1.5s linear infinite;
+        }
+
+        
+
+        .edit-message {
+          border-left: 7px #840fff solid;
+          margin-top: .5rem;
+          margin-bottom: .25rem;
+          padding: 8px;
+          border-radius: 4px;
+          width: 50%;
+          box-shadow: 2px 2px #f1f3f4;      
+          transition: 0.3s;        
+        }
+
+        .success-message {
+          border-left: 7px #80eda4 solid;
+          margin-top: .5rem;
+          margin-bottom: .25rem;
+          padding: 8px;
+          border-radius: 4px;
+          width: 50%;
+          box-shadow: 2px 2px #f1f3f4;      
+          transition: 0.3s;        
+        }
+
+        /*Offices/Labs toggle for STL and PHL*/
+
+        /* Initially hidden, transparent */
+        #slider-wrapper {
+          opacity: 0;
+          visibility: hidden;
+          transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+
+        /* When we want it visible */
+        #slider-wrapper.show {
+          opacity: 1;
+          visibility: visible;
+        }
+
+        .toggle-container {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+        }
+
+        /* Label styling */
+        .toggle-label {
+          font-weight: bold;
+          user-select: none;
+        }
+
+        /* The switch - hidden checkbox + styled slider */
+        .switch {
+          position: relative;
+          display: inline-block;
+          width: 50px;
+          height: 24px;
+        }
+
+        .switch input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+
+        /* The round slider */
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background-color: #FF8100; /* default = Offices */
+          border-radius: 34px;
+          transition: background-color 0.3s;
+        }
+
+        /* The knob */
+        .slider::before {
+          position: absolute;
+          content: "";
+          height: 20px;
+          width: 20px;
+          left: 2px;
+          bottom: 2px;
+          background-color: white;
+          border-radius: 50%;
+          transition: transform 0.3s;
+        }
+
+        /* Move knob when checked */
+        .switch input:checked + .slider::before {
+          transform: translateX(26px);
+        }
+
+        /* Modal buttons default styling */
+        .modal-button {
+          padding: 0.5rem 1rem;
+          margin: 0.25rem;
+          border: none;
+          background-color: #FF8100; /* default = Offices */
+          color: white;
+          cursor: pointer;
+          border-radius: 4px;
+          transition: background-color 0.3s;
+        }
+        
+
+
+        @keyframes spin-pulse {
+          0%   {transform: scale(1) rotate(0deg); opacity: .7;}
+          50%  {transform: scale(1.3) rotate(180deg); opacity: 1;}
+          100% {transform: scale(1) rotate(360deg); opacity: .7;}
+        }
+        
+    </style>
+  </body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet">
+      <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Montserrat&display=swap" rel="stylesheet">
+    <base target="_top">
+    <?!= include('Style'); ?>
+    <?!= include('Script'); ?>    
+  </head>
+  <body>
+      <header>
+        <img src="https://drive.google.com/thumbnail?id=1N3jBq3JalHmMCGGkcExI3QOBsGc2m3n9&sz=w1000" width="200px" height="auto" alt="cic-logo" id="cic-logo" />
+        
+        
+        <h1 id="page-title">Deck Generator 2.0</h1>
+      </header>
+      
+      <div class="row">
+        <div class="column">
+          <label for="site-select">Select site:</label>
+          <select class="dg-pre-req" name="site-select" id="site-select" onchange="onSiteSelectChange()">
+            <option value="" disabled selected>--</option>
+            <? for (let i = 0; i < sheets.length; i++){ ?>
+              <option value="<?=sheets[i].getName().toLowerCase()?>"><?=sheets[i].getName()?></option>
+            <? }?>
+          </select>
+        </div>
+        <div class="column">
+          <label for="rm-select" id="rm-select-label">Select RM</label>
+          <select class="dg-pre-req" name="rm-select" id="rm-select">
+            <option value="" disabled selected>--</option>
+            
+          </select>
+        </div>
+        <div class="column">
+          <label for="lang-select">Select Language</label>
+          <select class="dg-pre-req" name="lang-select" id="lang-select">
+            <option value="" disabled selected>--</option>
+            
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div id="slider-wrapper">
+         <div class="toggle-container">
+          <span class="toggle-label">Offices</span>
+          <label class="switch">
+            <input type="checkbox" id="modeToggle">
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-label">Labs</span>
+         </div>
+        </div>
+      </div>
+      <div class="row" id="dg">
+        <div class="column dropdown">
+          <button onclick="showDropdown()" id="dropdown-btn" class="standard-btn"> 
+          
+            <div>
+              <p>See spaces</p>
+            </div> 
+          </button>
+          <div id="my-dropdown" class="dropdown-content">
+            <input type="text" placeholder="Search available spaces..." id="my-input" onkeyup="filterFunction()">
+            <div class="available-spaces-container">
+              <ul>
+              </ul>
+            </div>
+          </div>
+          
+        </div>
+        <div class="column">
+          
+          <div class="spaces-container">
+            <p id="selected-header"> Selected spaces: </p>
+            <ul class="selected-spaces-list">
+
+            </ul>
+          </div>
+        </div>
+        <div class="column">
+          <div class="container-1">
+            <div class="container-2">
+              <div id="input-fields">
+                <div class="input-div">
+                  <label for="prospect-name" id="prospect-name-label">Prospect name: </label>
+                  <input type="text" name="prospect-name" id="prospect-name" class="input-field" required/>
+                </div>
+                <div class="input-div">
+                  <label for="company-name" id="company-name-label">Company name: </label>
+                  <input type="text" name="company-name" id="company-name" class="input-field" required/>
+                </div>
+                
+                
+                <div class="input-div">
+                  <p id="long-term-radio-label">Include long term rate?</p>
+                  <div class="radio-block" id="long-term-radio-block">
+                    <input onfocus="toggleLongTermDetails(this)" type="radio" id="long-term-radio-yes" name="long-term-radio" value="yes">Yes</input><br>
+                    <input onfocus="toggleLongTermDetails(this)" type="radio" id="long-term-radio-no" name="long-term-radio" value="no">No</input>
+                    <div class="input-div none" id="long-term-details">
+                      <p>
+                        <input type="number" name="long-term-months" id="long-term-months-input" min="1" max="100" />
+                        <span> months </span>
+                      </p>
+                      <p>
+                        <input type="number" name="term-pct" id="long-term-pct-input" min="1" max="100" />
+                        <span>% reduction from month-to-month rate</span>
+                      </p>
+
+                    </div>
+                  </div>
+                </div>
+                
+              </div>
+             
+              <button id="submit-btn" onclick="onSubmit();" class="standard-btn"> 
+              
+                <div>
+                  <p>Create</p> 
+                </div>
+              </button>
+              <p class="success-message none">
+
+              </p>
+              <p class="edit-message none">
+                
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="error-container">
+        <p class="error-message none">
+
+        </p>
+      </div>
+      
+  </body>
+</html>

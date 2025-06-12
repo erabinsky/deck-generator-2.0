@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <body>
+    <script>
+          
+      //Generates promise for link
+      function runServerFunction(serverFunctionName, params=[]){
+        return new Promise ((resolve, reject) => {
+          google.script.run.withSuccessHandler(data => {
+            resolve(data)
+          }).withFailureHandler(er => {
+            reject(er)
+          })[serverFunctionName](...params)
+        })
+      }
+
+
+      // Function to handle the change event of the first dropdown
+      function onSiteSelectChange() {
+        const siteSelect = document.getElementById('site-select');
+        
+        //Clear all values
+        let spacesInput = document.getElementsByName('my-input');
+        let dropdownBtn = document.getElementById('my-dropdown');
+        let selectedSpaceList = document.querySelector('.selected-spaces-list');
+        let prospectName = document.getElementById('prospect-name');
+        let companyName = document.getElementById('company-name');
+        let longTermRadio = document.getElementsByName('long-term-radio');
+        let longTermDetails = document.getElementById('long-term-details');
+        let longTermMonths = document.getElementById('long-term-months-input')
+        let longTermPct = document.getElementById('long-term-pct-input')
+        let editMessage = document.querySelector('.edit-message');
+        let successMessage = document.querySelector('.success-message');
+        let submitButton = document.getElementById('submit-btn');
+        let submitButtonText = document.querySelector("#submit-btn div p")
+
+
+        spacesInput.innerHTML = "";
+        dropdownBtn.classList.remove('show');
+        selectedSpaceList.innerHTML = "";
+        prospectName.value = "";
+        companyName.value = "";
+        longTermMonths.innerHTML = "";
+        longTermPct.innerHTML = ""
+        longTermRadio.forEach(el => {
+          el.checked = false;
+        })
+        longTermDetails.classList.add('none');
+
+
+        editMessage.classList.add('none')
+        successMessage.classList.add('none')
+        submitButton.disabled = false;
+        submitButtonText.innerHTML = "Create"
+
+
+
+
+        const selectedSheet = siteSelect.value;
+        
+        
+
+        if (selectedSheet) {
+          google.script.run.withSuccessHandler(populateLangRMandSpaceTypeData)
+            .getRM(selectedSheet)
+          
+          //JS function with single param ('data') to append anchors in '.available-spaces-container' for each value of responseData.spaceName, which takes 'selectedSheet' as the argument
+          google.script.run.withSuccessHandler(populateSpaces) 
+            .fetchSpaces(selectedSheet) //chain fetchSpaces(selectedSheet) function
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const siteSelect = document.getElementById("site-select");
+        const wrapper   = document.getElementById("slider-wrapper");
+        const toggle    = document.getElementById("modeToggle");
+        const slider    = document.querySelector(".slider");
+        const buttons   = document.querySelectorAll(".standard-btn");
+        const pageTitle = document.getElementById("page-title");
+
+        const COLORS = {
+          offices: "#FF8100",
+          labs:    "#278090"
+        };
+
+        function updateSliderVisibility() {
+          const site = siteSelect.value;
+          if (site === "stl" || site === "phl") {
+            wrapper.classList.add("show");
+            initSlider();
+          } else {
+            wrapper.classList.remove("show");
+            // …and reset it back to Offices
+            const toggleEl = document.getElementById("modeToggle");
+            if (toggleEl) {
+              toggleEl.checked = false;
+            }
+
+            // Ensure emoji & colors go back to Offices state
+            removeEmoji();
+            applyColor(COLORS.offices);
+
+            // (Re‐populate list so it uses the 'office' filter if you're showing spaces)
+            populateSpaces(combinedData);
+          }
+        }
+
+        function applyColor(color) {
+          slider.style.backgroundColor = color;
+          buttons.forEach(btn => btn.style.backgroundColor = color);
+        }
+
+        function initSlider() {
+          // reset to Offices state
+          toggle.checked = false;
+          applyColor(COLORS.offices);
+          removeEmoji();
+
+          // make sure we don’t double‐bind listeners
+          toggle.replaceWith(toggle.cloneNode());
+          const freshToggle = document.getElementById("modeToggle");
+
+          freshToggle.addEventListener("change", () => {
+            if (freshToggle.checked) {
+              applyColor(COLORS.labs);
+              appendEmoji();
+            } else {
+              applyColor(COLORS.offices);
+              removeEmoji();
+            }
+            populateSpaces(combinedData);
+          });
+        }
+
+        function appendEmoji() {
+          if (!pageTitle.textContent.endsWith("🔬")) {
+            pageTitle.textContent = pageTitle.textContent.trim() + " 🔬";
+          }
+        }
+
+        function removeEmoji() {
+          pageTitle.textContent = pageTitle.textContent.replace(/\s*🔬$/, "");
+        }
+
+        // initialize
+        updateSliderVisibility();
+        siteSelect.addEventListener("change", updateSliderVisibility);
+      });
+
+
+
+      let combinedData = [];
+
+      // function populateSpaces(data){
+      //   combinedData = data;
+      //   let availableSpacesUl = document.querySelector('.available-spaces-container ul')
+      //   availableSpacesUl.innerHTML = '';
+      //   if (!combinedData || combinedData.length === 0){
+      //     availableSpacesUl.innerHTML = '<li>No available memberhsips or spaces</li>'
+      //     return;
+      //   }
+
+      //   let memberships = combinedData.filter(item => item.name);
+      //   let spaces = combinedData.filter(item => item.spaceName);
+
+
+      //   const sortByPriceThenName = (a,b) => {
+      //     const priceDiff = (a.listPrice?.amount ?? 0) - (b.listPrice?.amount ?? 0);
+      //     if (priceDiff !== 0) return priceDiff;
+
+      //     const nameA = (a.name || a.spaceName || '').trim();
+      //     const nameB = (b.name || b.spaceName || '').trim();
+      //     return nameA.localeCompare(
+      //       nameB,
+      //       undefined,
+      //       { numeric: true, sensitivity: 'base' }
+      //     );
+      //   };
+
+      //   memberships.sort(sortByPriceThenName)
+      //   spaces.sort(sortByPriceThenName)
+
+      //   let sortedData = [...memberships, ...spaces];
+
+      //   sortedData.forEach(item => {
+      //     const li = document.createElement('li');
+      //     if (item.name){
+      //       // Memberships
+      //       li.textContent = item.name;
+      //       availableSpacesUl.appendChild(li);
+      //     } else if (item.spaceName && item.parentSuite === undefined){
+      //       // Spaces
+      //       li.textContent = item.spaceName;
+      //       availableSpacesUl.appendChild(li);
+
+      //     }
+          
+        
+
+      //   // const filteredSpaces = data.filter(space => space.parentSuite === undefined);
+
+      //   // const sortedSpaces = filteredSpaces.sort((a,b) => a.listPrice.amount - b.listPrice.amount)
+
+      //   // sortedSpaces.forEach(space => {
+      //   // data.forEach(space => {
+      //   //   let li = document.createElement('li');            
+      //   //   li.innerText = space.spaceName;
+
+      //   // //   //  Create and style the badge
+      //   // //   const badge = document.createElement('span');
+      //   // //   badge.classList.add('badge');
+      //   // //   if (space.status === 'Available') {
+      //   // //       badge.classList.add('badge-available');
+      //   // //       badge.innerText = 'AVAIL';
+      //   // //   } else if (space.status === 'Occupied') {
+      //   // //       badge.classList.add('badge-occupied');
+      //   // //       badge.innerText = 'OCC';
+      //   // //   }
+
+      //   // // // Append the badge and the li element
+      //   // //   li.appendChild(badge);
+
+      //     li.classList.add('available-spaces')
+      //     li.addEventListener('click', displaySelectedSpaces)
+      //   })
+      // }
+      function populateSpaces(data) {
+        combinedData = data;
+        const ul = document.querySelector('.available-spaces-container ul');
+        ul.innerHTML = '';
+
+        if (!combinedData || combinedData.length === 0) {
+          ul.innerHTML = '<li>No available memberships or spaces</li>';
+          return;
+        }
+
+        // 1. Grab slider state
+        const isLabs = document.getElementById('modeToggle').checked;
+
+        // 2. Always include all memberships
+        const memberships = combinedData.filter(item => item.name);
+
+        // 3. For spaces, filter by allowed products
+        const baseProducts = ['office', 'desk', 'table'];
+        const extraLab    = ['lab', 'lab_bench'];
+        const allowed     = isLabs
+          ? baseProducts.concat(extraLab)
+          : baseProducts;
+
+        const spaces = combinedData
+          .filter(item => item.spaceName && item.parentSuite === undefined && allowed.includes(item.reservable?.product));
+
+        // 4. Sort both lists the same way
+        const sortByPriceThenName = (a, b) => {
+          const pa = a.listPrice?.amount ?? 0;
+          const pb = b.listPrice?.amount ?? 0;
+          if (pa !== pb) return pa - pb;
+
+          const na = (a.name || a.spaceName || '').trim();
+          const nb = (b.name || b.spaceName || '').trim();
+          return na.localeCompare(nb, undefined, { numeric: true, sensitivity: 'base' });
+        };
+
+        memberships.sort(sortByPriceThenName);
+        spaces.sort(sortByPriceThenName);
+
+        // 5. Render memberships *first*, then spaces
+        memberships.forEach(item => {
+          const li = document.createElement('li');
+          li.textContent = item.name;
+          li.classList.add('available-spaces');
+          li.addEventListener('click', displaySelectedSpaces);
+          ul.appendChild(li);
+        });
+
+        spaces.forEach(item => {
+          const li = document.createElement('li');
+          li.textContent = item.spaceName;
+          li.classList.add('available-spaces');
+          li.addEventListener('click', displaySelectedSpaces);
+          ul.appendChild(li);
+        });
+      }
+
+
+      function populateLangRMandSpaceTypeData(data){
+        const siteSelect = document.getElementById('site-select');
+        const rmSelect = document.getElementById('rm-select');
+        const langSelect = document.getElementById('lang-select');
+        const spaceType = document.getElementById('space-type');
+        
+
+
+        const languageMap = {
+          cam: [{ value: 'en', text: 'English 🇺🇸' }],
+          bos: [{ value: 'en', text: 'English 🇺🇸' }],
+          pvd: [{ value: 'en', text: 'English 🇺🇸' }],
+          phl: [{ value: 'en', text: 'English 🇺🇸' }],
+          stl: [{ value: 'en', text: 'English 🇺🇸' }],
+          rdm: [
+            { value: 'nl', text: 'Nederlands 🇳🇱' },
+            { value: 'en', text: 'English 🇺🇸' }
+          ],
+          ber: [
+            // { value: 'de', text: 'Deutsch 🇩🇪' },
+            { value: 'en', text: 'English 🇺🇸' }
+          ],
+          waw: [
+            { value: 'pl', text: 'Polski 🇵🇱' },
+            { value: 'en', text: 'English 🇺🇸' }
+          ],
+          tok: [
+            { value: 'jp', text: '日本語 🇯🇵' },
+            { value: 'en', text: 'English 🇺🇸' }
+          ],
+          fuk: [
+            { value: 'jp', text: '日本語 🇯🇵' },
+            { value: 'en', text: 'English 🇺🇸' }
+          ]
+        };
+        const langs = languageMap[siteSelect.value]
+        
+        rmSelect.innerHTML = ''; // Clear existing options
+        langSelect.innerHTML = ''; // Clear existing options
+
+        
+        data.forEach(row => {
+          let rmOption = document.createElement('option');
+          rmOption.value = row[0];
+          rmOption.text = row[0];
+          rmSelect.appendChild(rmOption);
+
+      
+        })
+        langs.forEach(lang => {
+          let langOption = document.createElement('option');
+          langOption.value = lang.value;
+          langOption.text = lang.text;
+          langSelect.appendChild(langOption)
+        })
+
+        // if (siteSelect.value === 'phl' || siteSelect.value === 'stl'){
+        //   spaceType.classList.remove('none');
+        // } else {
+        //   spaceType.classList.add('none');
+        // }
+
+        
+        
+      }
+
+      
+
+      function toggleLongTermDetails(radio){
+        let longTermDetails = document.getElementById('long-term-details');
+          if (radio.value === 'yes'){
+            longTermDetails.classList.remove('none')
+          } else if (radio.value === 'no'){
+            longTermDetails.classList.add('none')
+          }
+      }
+
+
+      function showDropdown() {
+        const myDropdown = document.querySelector('#my-dropdown');
+        myDropdown.classList.toggle('show');
+      }
+
+      
+      
+
+      function filterFunction() {
+        var input, filter, ul, li, btn, i;
+        input = document.getElementById("my-input");
+        filter = input.value.toUpperCase();
+        div = document.getElementById('my-dropdown');
+        // a = div.getElementsByTagName("a");
+        li = div.querySelectorAll(".available-spaces");
+
+        for (let i = 0; i < li.length; i++) {
+          txtValue = li[i].textContent || li[i].innerText;
+          if (txtValue.toUpperCase().indexOf(filter) > -1) {
+            li[i].style.display = "";
+          } else {
+            li[i].style.display = "none";
+          }
+        }
+      }
+      
+      
+      
+      function displaySelectedSpaces(e) {
+        
+        const selectedSpacesList = document.querySelector('.selected-spaces-list');
+        const selectedSpace = document.createElement('li');
+        
+        selectedSpace.classList.add('selected-space')
+        selectedSpace.innerHTML = e.target.innerHTML;
+        
+        selectedSpacesList.appendChild(selectedSpace);
+        selectedSpace.onclick = function() {
+          selectedSpacesList.removeChild(this)
+        }              
+      }
+
+      
+        
+      
+
+      
+
+      // function showPercentageDiscount(){
+      //   let discountInputBlock = document.getElementById('discount-input-block');
+      //   while (discountInputBlock.firstChild) {
+      //       discountInputBlock.removeChild(discountInputBlock.firstChild)
+      //     }
+      //   let discountPercentageLabel = document.createElement('label');
+      //   discountPercentageLabel.htmlFor = "discount-percentage-input";
+      //   discountPercentageLabel.innerHTML = "%";
+      //   let discountPercentageInput = document.createElement('input');
+      //   discountPercentageInput.type = "number";
+      //   discountPercentageInput.required = true;
+      //   discountPercentageInput.min = 0;
+      //   discountPercentageInput.max = 100;
+      //   discountInputBlock.appendChild(discountPercentageInput);
+      //   discountInputBlock.appendChild(discountPercentageLabel);
+      //   discountPercentageInput.id = "discount-percentage-input";
+        
+      //   /* Apply discount to particular building(s) */
+      //   // let buildingBlock = document.createElement('div');
+      //   // buildingBlock.id = "building-block";
+      //   // let buildingPrompt = document.createElement('p');
+      //   // buildingPrompt.innerHTML = "Apply discount to which building(s)?";
+
+      //   // let inputCET = document.createElement('input');
+      //   // inputCET.type = "checkbox";
+      //   // inputCET.id = "cet";
+      //   // inputCET.name = "cet";
+      //   // inputCET.value = "CET";
+      //   // let labelCET = document.createElement('label');
+      //   // labelCET.htmlFor = "cet";
+      //   // labelCET.innerHTML = "CET";
+
+      //   // let input4220 = document.createElement('input');
+      //   // input4220.type = "checkbox";
+      //   // input4220.id = "4220";
+      //   // input4220.name = "4220";
+      //   // input4220.value = "4220";
+      //   // let label4220 = document.createElement('label');
+      //   // label4220.htmlFor = "4220";
+      //   // label4220.innerHTML = "4220";
+
+      //   // let input4240 = document.createElement('input');
+      //   // input4240.type = "checkbox";
+      //   // input4240.id = "4240";
+      //   // input4240.name = "4240";
+      //   // input4240.value = "4240";
+      //   // let label4240 = document.createElement('label');
+      //   // label4240.htmlFor = "4240";
+      //   // label4240.innerHTML = "4240";
+
+
+      //   let durationOrEndDateDiv = document.createElement('div')
+      //   durationOrEndDateDiv.classList.add('input-div')
+
+      //   let prompt = document.createElement('p');
+      //   prompt.innerHTML = "Set end date or duration for credit?";
+
+      //   let endDateRadio = document.createElement('input');
+      //   endDateRadio.type = "radio";
+      //   endDateRadio.value = "select-end-date";
+      //   endDateRadio.name = "date-or-duration"
+      //   endDateRadio.id = "select-end-date";
+      //   endDateRadio.innerHTML = "End date"
+      //   let endDateRadioLabel = document.createElement('label')
+      //   // endDateRadioLabel.htmlFor = 'date-or-duration';
+      //   endDateRadioLabel.innerText = "End date"
+
+      //   let creditDurationRadio = document.createElement('input');
+      //   creditDurationRadio.type = "radio";
+      //   creditDurationRadio.value = "select-credit-duration";
+      //   creditDurationRadio.name = "date-or-duration";
+      //   creditDurationRadio.id = "select-credit-duration";
+      //   let creditDurationRadioLabel = document.createElement('label')
+      //   // creditDurationRadioLabel.htmlFor = 'date-or-duration';
+      //   creditDurationRadioLabel.innerText = "Duration"
+
+      //   let endDateDiv = document.createElement('div');
+      //   let creditDurationDiv = document.createElement('div');
+
+      //   let endDateRow1 = document.createElement('div');
+      //   let creditDurationRow1 = document.createElement('div');
+
+      //   endDateRow1.append(endDateRadio, endDateRadioLabel);
+      //   endDateRow1.classList.add('input-row');
+      //   endDateDiv.append(endDateRow1);
+
+      //   creditDurationRow1.append(creditDurationRadio, creditDurationRadioLabel);
+      //   creditDurationRow1.classList.add('input-row');
+      //   creditDurationDiv.append(creditDurationRow1)
+
+      //   durationOrEndDateDiv.append(prompt, endDateDiv, creditDurationDiv)
+      //   discountInputBlock.append(durationOrEndDateDiv)
+
+        
+        
+      
+      //   // while (endDateRow.firstChild || creditDurationRow.firstChild) {
+      //   //   endDateRow.removeChild(endDateRow.firstChild);
+      //   //   creditDurationRow.removeChild(creditDurationRow.firstChild);
+      //   // }
+
+      //   let endDateLabel = document.createElement('label');
+      //   endDateLabel.htmlFor = "end-date";
+      //   endDateLabel.innerHTML = "Select end date for credit:"
+
+      //   let endDateInput = document.createElement('input');
+      //   endDateInput.type = "date";
+      //   endDateInput.id = "end-date";
+      //   endDateInput.name = "end-date";
+
+      //   let endDateRow2 = document.createElement('div');
+      //   endDateRow2.classList.add('input-row')
+      //   endDateRow2.id = "end-date-input"
+      //   endDateRow2.append(endDateLabel, endDateInput)
+      //   endDateDiv.append(endDateRow2)
+        
+        
+      //   let creditDurationLabel = document.createElement('label');
+      //   creditDurationLabel.htmlFor = "credit-duration";
+      //   creditDurationLabel.innerHTML = `Enter duration of credit (e.g. "3 months"):`
+
+      //   let creditDurationInput = document.createElement('input');
+      //   creditDurationInput.type = "text";
+      //   creditDurationInput.id = "credit-duration";
+      //   creditDurationInput.name = "credit-duration";
+
+      //   let creditDurationRow2 = document.createElement('div');
+      //   creditDurationRow2.classList.add('input-row')
+      //   creditDurationRow2.id = "credit-duration-input"
+      //   creditDurationRow2.append(creditDurationLabel, creditDurationInput)
+      //   creditDurationDiv.append(creditDurationRow2)
+
+      //   endDateRadio.addEventListener("change", () => {
+      //     if (endDateRadio.checked){
+      //       creditDurationRow2.style.display = "none";
+      //       endDateRow2.style.display = "flex";
+      //     }
+      //   })
+
+      //   creditDurationRadio.addEventListener("change", () => {
+      //     if (creditDurationRadio.checked){
+      //       endDateRow2.style.display = "none";
+      //       creditDurationRow2.style.display = "flex";
+      //     }
+      //   })
+
+        
+
+        
+
+        
+
+        
+        
+
+
+
+      //   let discountBlock = document.getElementById('discount-input-block');
+
+
+      //   //endDateLabel, endDateInput, creditDurationLabel, creditDurationInput
+      //   // discountBlock.append(buildingPrompt, inputCET, labelCET, input4220, label4220, input4240, label4240)
+        
+        
+
+      // }
+
+
+      
+
+      function removePercentageDiscount(){
+        let discountInputBlock = document.getElementById('discount-input-block');
+        while (discountInputBlock.firstChild) {
+            discountInputBlock.removeChild(discountInputBlock.firstChild)
+          }
+      }
+
+      
+        
+  
+  
+
+      async function getDataFromServer(){
+
+          let prospectName = document.getElementById('prospect-name');
+          let companyName = document.getElementById('company-name');
+          let selectedSpaces = document.getElementsByClassName('selected-space');
+          let spaceNames = [];
+          let longTermPct;
+          let longTermMonths;
+          let longTermRadioYes = document.getElementById('long-term-radio-yes');
+          let longTermRadioNo = document.getElementById('long-term-radio-no');
+          let site = document.getElementById('site-select');
+          let lang = document.getElementById('lang-select');
+          let rm = document.getElementById('rm-select')
+
+          for (let i = 0; i < selectedSpaces.length; i++) {
+            spaceNames.push(selectedSpaces[i].innerHTML)
+          }
+
+          // let sqFtRadio = document.getElementsByName('sq-ft-radio');
+          // let sqFtRadioYes = document.getElementById('sq-ft-radio-yes');
+          // let sqFtRadioNo = document.getElementById('sq-ft-radio-no'); 
+
+          // if (sqFtRadioYes.checked) {
+          //   includeSqFootage = true;
+          // } else if (sqFtRadioNo.checked) {
+          //   includeSqFootage = false;
+          // } else {
+          //   includeSqFootage = undefined;
+          // }
+
+          
+          
+
+          
+
+          if (longTermRadioYes.checked){
+
+       
+            let longTermPctInput = document.getElementById('long-term-pct-input').value;
+            let longTermMonthsInput = document.getElementById('long-term-months-input');
+            longTermPct = longTermPctInput * .01
+            longTermMonths = longTermMonthsInput.value
+            // discountBldgs = selectedBuildings;
+
+            
+            
+          } else {
+            longTermPct = 0;
+            longTermMonths = null;
+          }
+
+          let toggleEl = document.getElementById('modeToggle');
+          let workspaceType = (toggleEl && toggleEl.checked) ? 'lab' : 'office';
+
+          //function createDeck(prospectName, companyName, spaces, site, lang, workspaceType, longTermPct, longTermLength, rm)
+          await runServerFunction("createDeck", [prospectName.value, companyName.value, spaceNames, site.value, lang.value, workspaceType, longTermPct,  longTermMonths, rm.value]) 
+          
+          .then((data, error) => {
+              let cols = document.getElementsByClassName('column');
+
+              if (data){
+                const successMessage = document.querySelector('.success-message')
+                const editMessage = document.querySelector('.edit-message')
+
+                successMessage.innerHTML = `Success🎉!<a href="${data}" target="_blank"> Here's a link </a> to the proposal deck.`;
+                editMessage.innerHTML = `Made a mistake? <a href="#" onclick="event.preventDefault()"> Click here </a> to edit the deck`
+              }
+              if (error) {
+                // let errMessage = document.createELement('p');
+                let errMessage = document.querySelector('.error-message')
+                errMessage.innerHTML = `Hmmm... Something went wrong. Close the window and try again. (error: ${error})`
+                errMessage.classList.remove('none')
+                
+              }
+            })
+
+      }
+
+      
+       async function onSubmit() { 
+        let cicLogo = document.getElementById('cic-logo')
+        
+      
+        let submitButton = document.getElementById('submit-btn')
+        let submitButtonContent = document.querySelector("#submit-btn div");
+        let submitButtonText = document.querySelector("#submit-btn div p");
+        let prospectNameLabel = document.getElementById('prospect-name-label');
+        let prospectName = document.getElementById('prospect-name');
+        let companyNameLabel = document.getElementById('company-name-label');
+        let companyName = document.getElementById('company-name');
+        let selectedSpacesHeader = document.getElementById('selected-header');
+        let spacesList = document.getElementsByClassName('selected-spaces-list')[0];
+        let errorContainer = document.querySelector('.error-container')
+        let rmsSelector = document.getElementById('rm-select');
+        let rmsSelectorLabel = document.getElementById('rm-select-label')
+        // let sqFtRadioLabel = document.getElementById('sq-ft-radio-label')
+        // let sqFtRadio = document.getElementsByName('sq-ft-radio');
+        // let sqFtRadioYes = document.getElementById('sq-ft-radio-yes')
+        // let sqFtRadioNo = document.getElementById('sq-ft-radio-no')
+        let longTermRadioLabel = document.getElementById('long-term-radio-label');
+        let longTermRadio = document.getElementsByName('long-term-radio');
+        let longTermRadioYes = document.getElementById('long-term-radio-yes');
+        let longTermRadioNo = document.getElementById('long-term-radio-no');
+        
+        
+        
+        if (prospectName.checkValidity() === false || companyName.checkValidity() === false || spacesList.childNodes.length <= 1  || (longTermRadioYes.checked === false && longTermRadioNo.checked === false || rmsSelector.value === "none")){  //||(coiRadioYes.checked === false && coiRadioNo.checked === false)|| (sqFtRadioYes.checked === false && sqFtRadioNo.checked === false)
+          
+          if (prospectName.checkValidity() === false){
+            let prospectAsterisk = document.createTextNode('*')
+            prospectName.placeholder = "Please enter prospect name";
+            prospectNameLabel.append(prospectAsterisk);
+            prospectNameLabel.style.color = 'red';
+
+            
+            prospectName.onchange = () => {
+              prospectName.placeholder = "";
+              prospectNameLabel.removeChild(prospectAsterisk);              
+              prospectNameLabel.style.color = "black";
+            }
+
+          }        
+          if (companyName.checkValidity() === false){
+            
+            let companyAsterisk = document.createTextNode('*')
+            companyName.placeholder = "Please enter company name";
+            companyNameLabel.append(companyAsterisk);
+            companyNameLabel.style.color = "red";
+
+            
+            companyName.onchange = () => {
+              companyName.placeholder = "";
+              companyNameLabel.removeChild(companyAsterisk);
+              companyNameLabel.style.color = "black";
+            }
+          }
+
+          if (spacesList.childNodes.length <= 1){
+            let selectedSpacesAsterisk = document.createTextNode('*');
+            selectedSpacesHeader.append(selectedSpacesAsterisk);
+            selectedSpacesHeader.style.color = "red";
+            let selectedSpacesErr = document.createElement('p');
+            selectedSpacesErr.classList.add('error-message');
+            selectedSpacesErr.innerHTML = "Please select at least one space"
+            spacesList.appendChild(selectedSpacesErr);
+
+
+
+            spacesList.addEventListener("DOMNodeInserted", () => {
+              spacesList.removeChild(selectedSpacesErr);
+              selectedSpacesHeader.removeChild(selectedSpacesAsterisk);
+              selectedSpacesHeader.style.color = "black";
+            })
+
+          }
+
+          if (rmsSelector.value === "none"){
+            let rmAsterisk = document.createTextNode('*');
+            rmsSelectorLabel.append(rmAsterisk);
+            rmsSelectorLabel.style.color = "red"
+
+              rmsSelector.onchange = () => {
+              rmsSelectorLabel.removeChild(rmAsterisk);
+              rmsSelectorLabel.style.color = "black";
+            }
+          }
+
+          // if (sqFtRadioYes.checked === false && sqFtRadioNo.checked === false) {
+          //   let sqFtAsterisk = document.createTextNode('*');
+          //   sqFtRadioLabel.append(sqFtAsterisk);
+          //   sqFtRadioLabel.style.color = "red";
+            
+          //     sqFtRadioYes.onchange = () => {
+          //       sqFtRadioLabel.removeChild(sqFtAsterisk);
+          //       sqFtRadioLabel.style.color = "black";
+          //     }
+
+          //     sqFtRadioNo.onchange = () => {
+          //       sqFtRadioLabel.removeChild(sqFtAsterisk);
+          //       sqFtRadioLabel.style.color = "black";
+          //     }
+          // }
+
+          // if (coiRadioYes.checked === false && coiRadioNo.checked === false) {
+          //   let coiAsterisk = document.createTextNode('*');
+          //   coiRadioLabel.append(coiAsterisk);
+          //   coiRadioLabel.style.color = "red";
+            
+          //     coiRadioYes.onchange = () => {
+          //       coiRadioLabel.removeChild(coiAsterisk);
+          //       coiRadioLabel.style.color = "black";
+          //     }
+
+          //     coiRadioNo.onchange = () => {
+          //       coiRadioLabel.removeChild(coiAsterisk);
+          //       coiRadioLabel.style.color = "black";
+          //     }
+          // }
+
+          if (longTermRadioYes.checked === false && longTermRadioNo.checked === false) {
+            let longTermAsterisk = document.createTextNode('*');
+            longTermRadioLabel.append(longTermAsterisk);
+            longTermRadioLabel.style.color = "red";
+            
+              longTermRadioYes.onchange = () => {
+                longTermRadioLabel.removeChild(longTermAsterisk);
+                longTermRadioLabel.style.color = "black";
+              }
+
+              longTermRadioNo.onchange = () => {
+                longTermRadioLabel.removeChild(longTermAsterisk);
+                longTermRadioLabel.style.color = "black";
+              }
+          }
+            
+          alert('Oops! Please check the input fields and try again');
+        } else {
+          
+          let editMessage = document.querySelector('.edit-message')
+          let successMessage = document.querySelector('.success-message')
+
+          submitButtonContent.classList.add('loading');
+          submitButton.disabled = true;
+          await getDataFromServer();
+          submitButtonContent.classList.remove('loading');
+          submitButtonText.innerHTML="Deck created!";
+          
+          
+          editMessage.classList.remove('none')                        
+          successMessage.classList.remove('none')
+
+          editMessage.addEventListener('click', (e) => {
+            editMessage.classList.add('none')
+            successMessage.classList.add('none')
+            submitButton.disabled = false;
+          
+            
+            submitButtonText.innerHTML = "Create"
+          })
+          
+        }                                
+      }
+
+    
+    </script>
+  </body>
+</html>
